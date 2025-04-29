@@ -15,8 +15,8 @@
 ### 从源码构建
 
 ```bash
-git clone [git@github.com:yuanpli/datamgr-cli.git](https://github.com/yuanpli/datamgr-cli.git)
-cd [datamgr-cli]
+git clone https://github.com/yuanpli/datamgr-cli.git
+cd datamgr-cli
 go build
 ```
 
@@ -25,7 +25,7 @@ go build
 ### 启动程序
 
 ```bash
-./[datamgr-cli]
+./datamgr-cli
 ```
 
 ### 连接数据库
@@ -33,7 +33,7 @@ go build
 通过命令行参数连接：
 
 ```bash
-./[datamgr-cli] connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
+./datamgr-cli connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
 ```
 
 或者在交互式命令行中连接：

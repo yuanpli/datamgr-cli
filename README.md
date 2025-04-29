@@ -15,8 +15,8 @@ A command-line tool for universal data management that supports multiple databas
 ### Build from Source
 
 ```bash
-git clone [git@github.com:yuanpli/datamgr-cli.git](https://github.com/yuanpli/datamgr-cli.git)
-cd [datamgr-cli]
+git clone https://github.com/yuanpli/datamgr-cli.git
+cd datamgr-cli
 go build
 ```
 
@@ -25,7 +25,7 @@ go build
 ### Start the Program
 
 ```bash
-./[datamgr-cli]
+./datamgr-cli
 ```
 
 ### Connect to a Database
@@ -33,7 +33,7 @@ go build
 Connect via command-line parameters:
 
 ```bash
-./[datamgr-cli] connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
+./datamgr-cli connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
 ```
 
 Or connect interactively:
