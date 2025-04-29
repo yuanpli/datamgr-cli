@@ -1,118 +1,141 @@
-# BWTY 通用数据管理工具
+# DATAMGR-CLI Universal Data Management Tool
 
-一个支持多种数据库的通用数据管理命令行工具，提供统一的表管理操作接口。
+A command-line tool for universal data management that supports multiple database types, providing a unified interface for table operations.
 
-## 特性
+## Features
 
-- 支持多种数据库类型（达梦/MySQL/SQLite/PostgreSQL等），默认为达梦数据库
-- 提供统一的表管理操作接口
-- 类SQL的命令语法
-- 交互式命令行界面，带有自动补全和命令历史记录
-- 支持直接通过命令行参数指定连接信息
+- Supports multiple database types (DM/MySQL/SQLite/PostgreSQL, etc.), with DM as the default
+- Provides a unified interface for table operations
+- SQL-like command syntax
+- Interactive CLI with auto-completion and command history
+- Supports direct connection via command-line parameters
 
-## 安装
+## Installation
 
-### 从源码构建
+### Build from Source
 
 ```bash
-git clone https://github.com/bwty/[DB_TOOL].git
-cd [DB_TOOL]
+git clone [git@github.com:yuanpli/datamgr-cli.git](https://github.com/yuanpli/datamgr-cli.git)
+cd [datamgr-cli]
 go build
 ```
 
-## 使用方法
+## Usage
 
-### 启动程序
-
-```bash
-./[DB_TOOL]
-```
-
-### 连接数据库
-
-通过命令行参数连接：
+### Start the Program
 
 ```bash
-./[DB_TOOL] connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
+./[datamgr-cli]
 ```
 
-或者在交互式命令行中连接：
+### Connect to a Database
+
+Connect via command-line parameters:
+
+```bash
+./[datamgr-cli] connect -H <host> -P <port> -u <user> -p <password> -D <dbname>
+```
+
+Or connect interactively:
 
 ```
 db> connect
 ```
 
-然后按照提示输入连接信息。
+Follow the prompts to enter connection details.
 
-### 可用命令
+### Available Commands
 
-#### 系统命令
+#### System Commands
 
-- `help` - 显示所有可用命令列表
-- `connect` - 连接到指定数据库
-- `status` - 显示当前连接状态
-- `exit/quit` - 退出程序
-- `clear` - 清屏
+- `help` - Show a list of available commands
+- `connect` - Connect to a specified database
+- `status` - Show current connection status
+- `exit/quit` - Exit the program
+- `clear` - Clear the screen
 
-#### 表清单交互命令
+#### Table Interaction Commands
 
-- `show tables` - 列出所有可用数据表
-- `desc table <table_name>` - 显示表结构详情
+- `show tables` - List all available tables
+- `desc table <table_name>` - Show table structure details
 
-#### 通用数据操作命令
+#### Universal Data Operation Commands
 
 ```sql
--- 查询操作
-SELECT [字段列表] FROM <table> [WHERE 条件] [LIMIT 数量]
+-- Query
+SELECT [field_list] FROM <table> [WHERE condition] [LIMIT count]
 
--- 新增记录
-INSERT INTO <table> (字段名1,字段名2,....)VALUES (值1,值2,.....)
+-- Insert
+INSERT INTO <table> (field1, field2, ...) VALUES (value1, value2, ...)
 
--- 更新记录
-UPDATE <table> SET 字段=值 [WHERE 条件]
+-- Update
+UPDATE <table> SET field=value [WHERE condition]
 
--- 删除记录
-DELETE FROM <table> [WHERE 条件]
+-- Delete
+DELETE FROM <table> [WHERE condition]
 
--- 批量导入（尚未实现）
+-- Bulk import (Not yet implemented)
 IMPORT <table> FROM <file> [FORMAT csv/excel]
 
--- 导出（尚未实现）
-EXPORT <table> [WHERE 条件] <file> [FORMAT csv/excel]
+-- Export (Not yet implemented)
+EXPORT <table> [WHERE condition] <file> [FORMAT csv/excel]
 ```
 
-## 示例
+## Examples
 
 ```
 db> connect -H localhost -u SYSDBA -p SYSDBA -D DAMENG
-已成功连接到 dameng 数据库: DAMENG
+Successfully connected to dameng database: DAMENG
 
 db[DAMENG]> show tables
-表列表:
+Table list:
   1) EMPLOYEES
   2) DEPARTMENTS
   3) PRODUCTS
 
 db[DAMENG]> desc table EMPLOYEES
-表 EMPLOYEES 的结构:
-字段名                 数据类型           长度         可空         约束          
+Structure of table EMPLOYEES:
+Field Name            Data Type          Length        Nullable      Constraints          
 ---------------------------------------------------------------------------
-ID                   NUMBER             22          N           PRIMARY KEY  
-NAME                 VARCHAR2           100         N                       
-DEPARTMENT_ID        NUMBER             22          Y                       
-SALARY               NUMBER             22          Y                       
-HIRE_DATE            DATE               7           Y                       
+ID                   NUMBER             22            N            PRIMARY KEY  
+NAME                 VARCHAR2           100           N                       
+DEPARTMENT_ID        NUMBER             22            Y                       
+SALARY               NUMBER             22            Y                       
+HIRE_DATE            DATE               7             Y                       
 
 db[DAMENG]> SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 1
 ID                  NAME                DEPARTMENT_ID       SALARY              HIRE_DATE           
 ----------------------------------------------------------------------------------------------------
-1                   张三                 1                   10000               2022-01-01          
-2                   李四                 1                   12000               2022-02-15          
+1                   Zhang San           1                   10000               2022-01-01          
+2                   Li Si               1                   12000               2022-02-15          
 
-共 2 行结果
+Total 2 rows
 ```
 
-## 开发环境要求
+## Development Requirements
 
-- Go 1.18 或更高版本
-- 达梦数据库驱动 `gitee.com/chunanyong/dm` 
+- Go 1.18 or higher
+- DM database driver `gitee.com/chunanyong/dm`
+
+## README Links
+
+- [English Version](README.md)
+- [中文版本](README_zh.md)
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+Copyright © 2023 datamgr-cli Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
