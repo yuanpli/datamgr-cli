@@ -22,6 +22,20 @@ var (
 	dbPrompt      = "datamgr> "
 )
 
+// cleanExit 处理程序退出前的清理工作
+func cleanExit(message string, exitCode int) {
+	if message != "" {
+		fmt.Println(message)
+	}
+	
+	// 清理资源
+	if conn := db.GetCurrentConnection(); conn != nil {
+		conn.Disconnect()
+	}
+	
+	os.Exit(exitCode)
+}
+
 // ExecuteCommand 执行命令
 func ExecuteCommand(cmd string) {
 	cmd = strings.TrimSpace(cmd)
@@ -31,14 +45,7 @@ func ExecuteCommand(cmd string) {
 
 	// 判断是否为退出命令
 	if strings.ToLower(cmd) == "exit" || strings.ToLower(cmd) == "quit" {
-		fmt.Println("再见！")
-		
-		// 清理资源
-		if conn := db.GetCurrentConnection(); conn != nil {
-			conn.Disconnect()
-		}
-		
-		os.Exit(0)
+		cleanExit("再见！", 0)
 	}
 
 	// 删除末尾的分号（如果有）
@@ -90,47 +97,45 @@ func ExecuteCommand(cmd string) {
 	}
 }
 
+// 保存当前连接为配置
+func saveCurrentConnectionAsConfig() error {
+	currentConfig := db.GetCurrentConfig()
+	if currentConfig == nil {
+		return fmt.Errorf("当前未连接到任何数据库，无法保存配置")
+	}
+
+	config := &utils.Config{
+		Type:     currentConfig.Type,
+		Host:     currentConfig.Host,
+		Port:     currentConfig.Port,
+		User:     currentConfig.User,
+		Password: currentConfig.Password,
+		DbName:   currentConfig.DbName,
+	}
+
+	if err := utils.SaveConfig(config); err != nil {
+		return fmt.Errorf("保存配置失败: %v", err)
+	}
+
+	fmt.Println("已将当前连接信息保存为默认配置")
+	return nil
+}
+
 // 处理配置相关命令
 func handleConfig(args []string) error {
 	if len(args) == 0 {
 		// 无参数，显示当前配置
-		config, err := utils.LoadConfig()
+		_, err := utils.DisplayConfig()
 		if err != nil {
 			return fmt.Errorf("加载配置失败: %v", err)
 		}
-		fmt.Println("当前默认配置:")
-		fmt.Printf("  数据库类型: %s\n", config.Type)
-		fmt.Printf("  主机地址: %s\n", config.Host)
-		fmt.Printf("  端口: %d\n", config.Port)
-		fmt.Printf("  用户名: %s\n", config.User)
-		fmt.Printf("  密码: %s\n", "********") // 不直接显示密码
-		fmt.Printf("  数据库名: %s\n", config.DbName)
 		return nil
 	}
 
 	switch strings.ToLower(args[0]) {
 	case "save":
 		// 保存当前连接为默认配置
-		currentConfig := db.GetCurrentConfig()
-		if currentConfig == nil {
-			return fmt.Errorf("当前未连接到任何数据库，无法保存配置")
-		}
-
-		config := &utils.Config{
-			Type:     currentConfig.Type,
-			Host:     currentConfig.Host,
-			Port:     currentConfig.Port,
-			User:     currentConfig.User,
-			Password: currentConfig.Password,
-			DbName:   currentConfig.DbName,
-		}
-
-		if err := utils.SaveConfig(config); err != nil {
-			return fmt.Errorf("保存配置失败: %v", err)
-		}
-
-		fmt.Println("已将当前连接信息保存为默认配置")
-		return nil
+		return saveCurrentConnectionAsConfig()
 
 	case "clear":
 		// 清除配置
@@ -269,12 +274,7 @@ func setupSignalHandler() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		<-c
-		fmt.Println("\n收到终止信号，程序退出...")
-		// 清理资源，如断开数据库连接
-		if conn := db.GetCurrentConnection(); conn != nil {
-			conn.Disconnect()
-		}
-		os.Exit(0)
+		cleanExit("\n收到终止信号，程序退出...", 0)
 	}()
 }
 
@@ -320,11 +320,7 @@ func Start() {
 			prompt.KeyBind{
 				Key: prompt.ControlC,
 				Fn: func(buf *prompt.Buffer) {
-					fmt.Println("\n程序被中断，正在退出...")
-					if conn := db.GetCurrentConnection(); conn != nil {
-						conn.Disconnect()
-					}
-					os.Exit(0)
+					cleanExit("\n程序被中断，正在退出...", 0)
 				},
 			},
 		),
@@ -416,7 +412,13 @@ func executeSQL(sql string) error {
 		}
 		headerFmt += "\n"
 
-		fmt.Printf(headerFmt, interfaceSlice(columns)...)
+		// 将列名转换为接口切片
+		headerValues := make([]interface{}, len(columns))
+		for i, v := range columns {
+			headerValues[i] = v
+		}
+		
+		fmt.Printf(headerFmt, headerValues...)
 		fmt.Println(strings.Repeat("-", 20*len(columns)))
 
 		// 打印每一行
@@ -447,13 +449,4 @@ func executeSQL(sql string) error {
 	}
 
 	return nil
-}
-
-// interfaceSlice 将字符串切片转换为接口切片
-func interfaceSlice(slice []string) []interface{} {
-	iSlice := make([]interface{}, len(slice))
-	for i, v := range slice {
-		iSlice[i] = v
-	}
-	return iSlice
 } 

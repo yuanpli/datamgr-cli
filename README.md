@@ -135,6 +135,7 @@ Total 2 rows
 
 - Go 1.18 or higher
 - DM database driver `gitee.com/chunanyong/dm`
+- PostgreSQL database driver `github.com/lib/pq`
 
 ## README Links
 

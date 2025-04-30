@@ -4,21 +4,21 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"encoding/csv"
 
+	"github.com/chzyer/readline"
 	"github.com/xuri/excelize/v2"
 	"github.com/yuanpli/datamgr-cli/db"
 	"github.com/yuanpli/datamgr-cli/pkg/utils"
-	"golang.org/x/term"
 )
 
 // HandleHelp 帮助命令处理
@@ -149,28 +149,73 @@ func HandleConnect(cmdStr string) error {
 	return nil
 }
 
-// readInput 读取用户输入
+// 初始化一个全局的readline实例
+var rl *readline.Instance
+
+// 初始化readline
+func init() {
+	var err error
+	rl, err = readline.New("")
+	if err != nil {
+		fmt.Println("初始化输入处理失败:", err)
+		os.Exit(1)
+	}
+}
+
+// readInput 使用readline库读取用户输入
 func readInput(prompt string) string {
-	// 打印提示并使用标准库读取一行
-	fmt.Print(prompt)
+	if rl == nil {
+		// 如果无法使用readline，回退到简单输入
+		fmt.Print(prompt)
+		var input string
+		fmt.Scanln(&input)
+		return input
+	}
 	
-	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
+	// 设置提示
+	rl.SetPrompt(prompt)
 	
-	// 去除结尾的换行符
-	text = strings.TrimSpace(text)
-	return text
+	// 读取一行
+	line, err := rl.Readline()
+	if err != nil {
+		if err == readline.ErrInterrupt {
+			fmt.Println("^C")
+			os.Exit(0)
+		} else if err == io.EOF {
+			return ""
+		}
+		fmt.Println("读取错误:", err)
+		return ""
+	}
+	
+	return strings.TrimSpace(line)
 }
 
 // readPassword 读取密码但不显示
 func readPassword(prompt string) string {
-	fmt.Print(prompt)
-	password, err := term.ReadPassword(int(syscall.Stdin))
-	fmt.Println() // 换行
+	// 创建一个临时的readline实例，用于密码输入
+	rlTemp, err := readline.New(prompt)
 	if err != nil {
+		fmt.Println("初始化密码读取失败:", err)
 		return ""
 	}
-	return string(password)
+	defer rlTemp.Close()
+	
+	// 设置为密码模式
+	rlTemp.Config.EnableMask = true
+	
+	// 读取密码
+	password, err := rlTemp.Readline()
+	if err != nil {
+		if err == readline.ErrInterrupt {
+			fmt.Println("^C")
+			os.Exit(0)
+		}
+		fmt.Println("读取密码错误:", err)
+		return ""
+	}
+	
+	return strings.TrimSpace(password)
 }
 
 // handleInteractiveConnect 交互式连接向导
@@ -199,33 +244,73 @@ func handleInteractiveConnect() error {
 		fmt.Printf("  用户名: %s\n", defaultConfig.User)
 		fmt.Printf("  数据库名: %s\n", defaultConfig.DbName)
 		
+		// 读取用户选择
 		useDefault := readInput("是否使用默认配置? (y/n): ")
-		if strings.ToLower(useDefault) == "y" || strings.ToLower(useDefault) == "yes" {
-			// 直接使用默认配置连接
+		
+		// 如果用户选择使用默认配置
+		if strings.HasPrefix(strings.ToLower(useDefault), "y") {
+			fmt.Println("使用默认配置连接...")
 			return db.Connect(defaultConfig.Type, defaultConfig.Host, defaultConfig.Port, 
 				defaultConfig.User, defaultConfig.Password, defaultConfig.DbName)
 		}
 		
-		// 否则使用默认配置作为基础，让用户修改
+		// 否则让用户输入新配置
 		fmt.Println("请输入新的连接信息 (直接回车使用默认值):")
 	}
 
-	// 获取主机地址
-	defaultHostPrompt := ""
-	if defaultConfig != nil && defaultConfig.Host != "" {
-		defaultHostPrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.Host)
+	// 获取数据库类型
+	fmt.Println("支持的数据库类型: dameng, mysql, postgresql, sqlite")
+	var dbTypePrompt string
+	if defaultConfig != nil {
+		dbTypePrompt = fmt.Sprintf("数据库类型 (默认 %s): ", defaultConfig.Type)
+	} else {
+		dbTypePrompt = fmt.Sprintf("数据库类型 (默认 %s): ", dbType)
 	}
-	host = readInput(fmt.Sprintf("主机地址%s: ", defaultHostPrompt))
+	
+	dbTypeInput := readInput(dbTypePrompt)
+	
+	// 验证数据库类型
+	if dbTypeInput != "" {
+		dbTypeInput = strings.ToLower(dbTypeInput)
+		supportedDbTypes := []string{"dameng", "mysql", "postgresql", "sqlite"}
+		isValidType := false
+		for _, supportedType := range supportedDbTypes {
+			if dbTypeInput == supportedType {
+				isValidType = true
+				break
+			}
+		}
+		if isValidType {
+			dbType = dbTypeInput
+		} else {
+			fmt.Printf("无效的数据库类型: %s, 将使用默认类型: %s\n", dbTypeInput, dbType)
+		}
+	} else if defaultConfig != nil {
+		dbType = defaultConfig.Type
+	}
+
+	// 获取主机地址
+	var hostPrompt string
+	if defaultConfig != nil {
+		hostPrompt = fmt.Sprintf("主机地址 (默认 %s): ", defaultConfig.Host)
+	} else {
+		hostPrompt = "主机地址: "
+	}
+	
+	host = readInput(hostPrompt)
 	if host == "" && defaultConfig != nil {
 		host = defaultConfig.Host
 	}
 	
 	// 获取端口
-	defaultPortPrompt := " (默认 5236)"
-	if defaultConfig != nil && defaultConfig.Port != 0 {
-		defaultPortPrompt = fmt.Sprintf(" (默认 %d)", defaultConfig.Port)
+	var portPrompt string
+	if defaultConfig != nil {
+		portPrompt = fmt.Sprintf("端口 (默认 %d): ", defaultConfig.Port)
+	} else {
+		portPrompt = fmt.Sprintf("端口 (默认 %d): ", port)
 	}
-	portStr := readInput(fmt.Sprintf("端口%s: ", defaultPortPrompt))
+	
+	portStr := readInput(portPrompt)
 	if portStr != "" {
 		fmt.Sscanf(portStr, "%d", &port)
 	} else if defaultConfig != nil && defaultConfig.Port != 0 {
@@ -233,11 +318,14 @@ func handleInteractiveConnect() error {
 	}
 	
 	// 获取用户名
-	defaultUserPrompt := ""
-	if defaultConfig != nil && defaultConfig.User != "" {
-		defaultUserPrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.User)
+	var userPrompt string
+	if defaultConfig != nil {
+		userPrompt = fmt.Sprintf("用户名 (默认 %s): ", defaultConfig.User)
+	} else {
+		userPrompt = "用户名: "
 	}
-	user = readInput(fmt.Sprintf("用户名%s: ", defaultUserPrompt))
+	
+	user = readInput(userPrompt)
 	if user == "" && defaultConfig != nil {
 		user = defaultConfig.User
 	}
@@ -249,11 +337,14 @@ func handleInteractiveConnect() error {
 	}
 	
 	// 获取数据库名
-	defaultDbNamePrompt := ""
-	if defaultConfig != nil && defaultConfig.DbName != "" {
-		defaultDbNamePrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.DbName)
+	var dbNamePrompt string
+	if defaultConfig != nil {
+		dbNamePrompt = fmt.Sprintf("数据库名 (默认 %s): ", defaultConfig.DbName)
+	} else {
+		dbNamePrompt = "数据库名: "
 	}
-	dbName = readInput(fmt.Sprintf("数据库名%s: ", defaultDbNamePrompt))
+	
+	dbName = readInput(dbNamePrompt)
 	if dbName == "" && defaultConfig != nil {
 		dbName = defaultConfig.DbName
 	}
@@ -318,12 +409,63 @@ func HandleDescribeTable(tableName string) error {
 	fmt.Println(strings.Repeat("-", 105))
 
 	for _, col := range columns {
-		colName := fmt.Sprintf("%v", col["COLUMN_NAME"])
-		dataType := fmt.Sprintf("%v", col["DATA_TYPE"])
-		dataLength := fmt.Sprintf("%v", col["DATA_LENGTH"])
-		nullable := fmt.Sprintf("%v", col["NULLABLE"])
-		constraint := fmt.Sprintf("%v", col["CONSTRAINT_TYPE"])
-		description := fmt.Sprintf("%v", col["DESCRIPTION"])
+		// 处理不同数据库返回的列名大小写差异
+		// 尝试先获取大写列名(达梦数据库风格)，如果不存在则尝试小写列名(PostgreSQL风格)
+		var colName, dataType, dataLength, nullable, constraint, description string
+
+		// 列名处理
+		if val, ok := col["COLUMN_NAME"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else if val, ok := col["column_name"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else {
+			colName = "<未知>"
+		}
+
+		// 数据类型处理
+		if val, ok := col["DATA_TYPE"]; ok && val != nil {
+			dataType = fmt.Sprintf("%v", val)
+		} else if val, ok := col["data_type"]; ok && val != nil {
+			dataType = fmt.Sprintf("%v", val)
+		} else {
+			dataType = "<未知>"
+		}
+
+		// 数据长度处理
+		if val, ok := col["DATA_LENGTH"]; ok && val != nil {
+			dataLength = fmt.Sprintf("%v", val)
+		} else if val, ok := col["data_length"]; ok && val != nil {
+			dataLength = fmt.Sprintf("%v", val)
+		} else {
+			dataLength = ""
+		}
+
+		// 可空处理
+		if val, ok := col["NULLABLE"]; ok && val != nil {
+			nullable = fmt.Sprintf("%v", val)
+		} else if val, ok := col["is_nullable"]; ok && val != nil {
+			nullable = fmt.Sprintf("%v", val)
+		} else {
+			nullable = "<未知>"
+		}
+
+		// 约束处理
+		if val, ok := col["CONSTRAINT_TYPE"]; ok && val != nil {
+			constraint = fmt.Sprintf("%v", val)
+		} else if val, ok := col["constraint_type"]; ok && val != nil {
+			constraint = fmt.Sprintf("%v", val)
+		} else {
+			constraint = ""
+		}
+
+		// 描述处理
+		if val, ok := col["DESCRIPTION"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else if val, ok := col["description"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else {
+			description = ""
+		}
 
 		fmt.Printf("%-20s %-15s %-10s %-10s %-15s %-30s\n",
 			colName, dataType, dataLength, nullable, constraint, description)
@@ -411,11 +553,46 @@ func HandleImport(cmdStr string) error {
 	isIdentityField := make(map[string]bool) // 记录自增字段
 	
 	for _, col := range tableInfo {
-		colName := fmt.Sprintf("%v", col["COLUMN_NAME"])
+		// 处理不同数据库返回的列名大小写差异
+		var colName, description, constraint, identityInfo string
+		
+		// 获取列名
+		if val, ok := col["COLUMN_NAME"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else if val, ok := col["column_name"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else {
+			continue // 跳过无效列
+		}
+		
 		colNameUpper := strings.ToUpper(colName)
-		description := fmt.Sprintf("%v", col["DESCRIPTION"])
-		constraint := fmt.Sprintf("%v", col["CONSTRAINT_TYPE"])
-		identityInfo := fmt.Sprintf("%v", col["IDENTITY_INFO"])
+		
+		// 获取描述
+		if val, ok := col["DESCRIPTION"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else if val, ok := col["description"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else {
+			description = ""
+		}
+		
+		// 获取约束
+		if val, ok := col["CONSTRAINT_TYPE"]; ok && val != nil {
+			constraint = fmt.Sprintf("%v", val)
+		} else if val, ok := col["constraint_type"]; ok && val != nil {
+			constraint = fmt.Sprintf("%v", val)
+		} else {
+			constraint = ""
+		}
+		
+		// 获取自增信息
+		if val, ok := col["IDENTITY_INFO"]; ok && val != nil {
+			identityInfo = fmt.Sprintf("%v", val)
+		} else if val, ok := col["identity_info"]; ok && val != nil {
+			identityInfo = fmt.Sprintf("%v", val)
+		} else {
+			identityInfo = ""
+		}
 		
 		// 使用字段名和描述作为可能的映射键
 		fieldMap[colNameUpper] = colName 
@@ -852,8 +1029,27 @@ func HandleExport(cmdStr string) error {
 	// 创建字段名到描述的映射
 	fieldDescriptions := make(map[string]string)
 	for _, col := range tableInfo {
-		colName := fmt.Sprintf("%v", col["COLUMN_NAME"])
-		description := fmt.Sprintf("%v", col["DESCRIPTION"])
+		// 处理不同数据库返回的列名大小写差异
+		var colName, description string
+		
+		// 获取列名
+		if val, ok := col["COLUMN_NAME"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else if val, ok := col["column_name"]; ok && val != nil {
+			colName = fmt.Sprintf("%v", val)
+		} else {
+			continue // 跳过无效列
+		}
+		
+		// 获取描述
+		if val, ok := col["DESCRIPTION"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else if val, ok := col["description"]; ok && val != nil {
+			description = fmt.Sprintf("%v", val)
+		} else {
+			description = ""
+		}
+		
 		fieldDescriptions[strings.ToUpper(colName)] = description
 	}
 	
@@ -1120,4 +1316,12 @@ func interfaceSlice(slice []string) []interface{} {
 		iSlice[i] = v // 不再使用颜色包装，避免显示问题
 	}
 	return iSlice
+}
+
+// Close 关闭readline实例
+func Close() {
+	if rl != nil {
+		rl.Close()
+		rl = nil
+	}
 } 

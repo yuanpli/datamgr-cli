@@ -4,39 +4,20 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/yuanpli/datamgr-cli/cmd"
 	"github.com/yuanpli/datamgr-cli/db"
+	"github.com/yuanpli/datamgr-cli/pkg/handler"
 	"github.com/yuanpli/datamgr-cli/pkg/utils"
 )
 
 func main() {
 	// 创建一个带取消的上下文
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	
-	// 设置信号处理
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
-	
-	// 在后台处理信号
-	go func() {
-		sig := <-signalChan
-		fmt.Printf("\n收到信号 %s，程序正在退出...\n", sig)
-		
-		// 断开数据库连接
-		if conn := db.GetCurrentConnection(); conn != nil {
-			fmt.Println("正在断开数据库连接...")
-			conn.Disconnect()
-		}
-		
-		// 触发取消
-		cancel()
-		
-		// 给一点时间进行清理
-		os.Exit(0)
-	}()
+	// 确保在程序结束时关闭readline
+	defer handler.Close()
 	
 	// 尝试加载默认配置并自动连接
 	tryAutoConnect()

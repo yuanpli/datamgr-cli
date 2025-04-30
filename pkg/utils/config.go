@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -116,4 +117,22 @@ func ClearConfig() error {
 
 	// 删除配置文件
 	return os.Remove(configPath)
+}
+
+// DisplayConfig 显示当前配置信息
+func DisplayConfig() (*Config, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	
+	fmt.Println("当前默认配置:")
+	fmt.Printf("  数据库类型: %s\n", config.Type)
+	fmt.Printf("  主机地址: %s\n", config.Host)
+	fmt.Printf("  端口: %d\n", config.Port)
+	fmt.Printf("  用户名: %s\n", config.User)
+	fmt.Printf("  密码: %s\n", "********") // 不直接显示密码
+	fmt.Printf("  数据库名: %s\n", config.DbName)
+	
+	return config, nil
 } 

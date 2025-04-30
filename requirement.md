@@ -66,5 +66,8 @@ EXPORT <table> [WHERE 条件] <file> [FORMAT csv/excel]
 
 ### 更多数据库支持
 
-[] 支持DB2
+[x] 支持PostgreSQL
 [] 支持Mysql
+[] 支持Oracle
+[] 支持MS SQL Server
+

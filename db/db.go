@@ -56,12 +56,12 @@ func Connect(dbType, host string, port int, user, password, dbName string) error
 	switch dbType {
 	case "dameng":
 		conn, err = NewDamengConnection(config)
+	case "postgresql":
+		conn, err = NewPostgresConnection(config)
 	case "mysql":
 		return errors.New("MySQL 数据库支持尚未实现")
 	case "sqlite":
 		return errors.New("SQLite 数据库支持尚未实现")
-	case "postgresql":
-		return errors.New("PostgreSQL 数据库支持尚未实现")
 	default:
 		return fmt.Errorf("不支持的数据库类型: %s", dbType)
 	}
