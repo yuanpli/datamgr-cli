@@ -172,6 +172,7 @@ ID                  NAME                DEPARTMENT_ID       SALARY              
 
 - Go 1.18 或更高版本
 - 达梦数据库驱动 `gitee.com/chunanyong/dm` 
+- PostgreSQL数据库驱动 `github.com/lib/pq`
 
 ## License
 

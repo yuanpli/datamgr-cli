@@ -151,15 +151,20 @@ func HandleConnect(cmdStr string) error {
 
 // readInput 读取用户输入
 func readInput(prompt string) string {
-	// 打印提示并使用标准库读取一行
+	// 打印提示
 	fmt.Print(prompt)
 	
+	// 使用bufio.Reader来处理输入，可以更好地处理回车键
 	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		// 如果读取出错，返回空字符串
+		return ""
+	}
 	
-	// 去除结尾的换行符
-	text = strings.TrimSpace(text)
-	return text
+	// 移除输入中的回车符和换行符
+	line = strings.TrimRight(line, "\r\n")
+	return line
 }
 
 // readPassword 读取密码但不显示
@@ -208,6 +213,32 @@ func handleInteractiveConnect() error {
 		
 		// 否则使用默认配置作为基础，让用户修改
 		fmt.Println("请输入新的连接信息 (直接回车使用默认值):")
+	}
+
+	// 获取数据库类型
+	supportedDbTypes := []string{"dameng", "mysql", "postgresql", "sqlite"}
+	defaultDbTypePrompt := ""
+	if defaultConfig != nil && defaultConfig.Type != "" {
+		defaultDbTypePrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.Type)
+	}
+	fmt.Println("支持的数据库类型: dameng, mysql, postgresql, sqlite")
+	dbTypeInput := readInput(fmt.Sprintf("数据库类型%s: ", defaultDbTypePrompt))
+	if dbTypeInput != "" {
+		dbTypeInput = strings.ToLower(dbTypeInput)
+		isValidType := false
+		for _, supportedType := range supportedDbTypes {
+			if dbTypeInput == supportedType {
+				isValidType = true
+				break
+			}
+		}
+		if isValidType {
+			dbType = dbTypeInput
+		} else {
+			fmt.Printf("无效的数据库类型: %s, 将使用默认类型: %s\n", dbTypeInput, dbType)
+		}
+	} else if defaultConfig != nil {
+		dbType = defaultConfig.Type
 	}
 
 	// 获取主机地址
