@@ -5,19 +5,21 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/bwty/bwty-data-cli/db"
-	"github.com/bwty/bwty-data-cli/pkg/handler"
 	"github.com/c-bata/go-prompt"
 	"github.com/fatih/color"
+	"github.com/yuanpli/datamgr-cli/db"
+	"github.com/yuanpli/datamgr-cli/pkg/handler"
+	"github.com/yuanpli/datamgr-cli/pkg/utils"
 )
 
 var (
 	successPrefix = "✓ "
 	errorPrefix   = "✗ "
-	dbPrompt      = "db> "
+	dbPrompt      = "datamgr> "
 )
 
 // ExecuteCommand 执行命令
@@ -59,6 +61,8 @@ func ExecuteCommand(cmd string) {
 		err = handler.HandleStatus()
 	case "connect":
 		err = handler.HandleConnect(cmd)
+	case "config":
+		err = handleConfig(cmdParts[1:])
 	case "show":
 		if len(cmdParts) > 1 && strings.ToLower(cmdParts[1]) == "tables" {
 			err = handler.HandleShowTables()
@@ -86,6 +90,114 @@ func ExecuteCommand(cmd string) {
 	}
 }
 
+// 处理配置相关命令
+func handleConfig(args []string) error {
+	if len(args) == 0 {
+		// 无参数，显示当前配置
+		config, err := utils.LoadConfig()
+		if err != nil {
+			return fmt.Errorf("加载配置失败: %v", err)
+		}
+		fmt.Println("当前默认配置:")
+		fmt.Printf("  数据库类型: %s\n", config.Type)
+		fmt.Printf("  主机地址: %s\n", config.Host)
+		fmt.Printf("  端口: %d\n", config.Port)
+		fmt.Printf("  用户名: %s\n", config.User)
+		fmt.Printf("  密码: %s\n", "********") // 不直接显示密码
+		fmt.Printf("  数据库名: %s\n", config.DbName)
+		return nil
+	}
+
+	switch strings.ToLower(args[0]) {
+	case "save":
+		// 保存当前连接为默认配置
+		currentConfig := db.GetCurrentConfig()
+		if currentConfig == nil {
+			return fmt.Errorf("当前未连接到任何数据库，无法保存配置")
+		}
+
+		config := &utils.Config{
+			Type:     currentConfig.Type,
+			Host:     currentConfig.Host,
+			Port:     currentConfig.Port,
+			User:     currentConfig.User,
+			Password: currentConfig.Password,
+			DbName:   currentConfig.DbName,
+		}
+
+		if err := utils.SaveConfig(config); err != nil {
+			return fmt.Errorf("保存配置失败: %v", err)
+		}
+
+		fmt.Println("已将当前连接信息保存为默认配置")
+		return nil
+
+	case "clear":
+		// 清除配置
+		if err := utils.ClearConfig(); err != nil {
+			return fmt.Errorf("清除配置失败: %v", err)
+		}
+		fmt.Println("已清除默认配置")
+		return nil
+
+	case "set":
+		// 更新配置
+		if len(args) < 2 {
+			return fmt.Errorf("用法: config set [type|host|port|user|password|dbname] 值")
+		}
+
+		// 先尝试加载现有配置
+		var config *utils.Config
+		existingConfig, err := utils.LoadConfig()
+		if err == nil {
+			// 有现有配置，以它为基础修改
+			config = existingConfig
+		} else {
+			// 没有现有配置，创建新的
+			config = &utils.Config{
+				Type: "dameng", // 默认使用达梦数据库
+				Port: 5236,     // 默认端口
+			}
+		}
+
+		// 根据参数设置不同的字段
+		if len(args) >= 3 {
+			switch strings.ToLower(args[1]) {
+			case "type":
+				config.Type = args[2]
+			case "host":
+				config.Host = args[2]
+			case "port":
+				port, err := strconv.Atoi(args[2])
+				if err != nil {
+					return fmt.Errorf("端口格式错误: %v", err)
+				}
+				config.Port = port
+			case "user":
+				config.User = args[2]
+			case "password":
+				config.Password = args[2]
+			case "dbname":
+				config.DbName = args[2]
+			default:
+				return fmt.Errorf("未知的配置项: %s", args[1])
+			}
+
+			// 保存配置
+			if err := utils.SaveConfig(config); err != nil {
+				return fmt.Errorf("保存配置失败: %v", err)
+			}
+			fmt.Printf("配置已更新: %s = %s\n", args[1], args[2])
+		} else {
+			return fmt.Errorf("需要指定配置项的值")
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("未知的config子命令: %s", args[0])
+	}
+}
+
 // completer 命令自动补全
 func completer(d prompt.Document) []prompt.Suggest {
 	s := []prompt.Suggest{
@@ -95,6 +207,10 @@ func completer(d prompt.Document) []prompt.Suggest {
 		{Text: "clear", Description: "清屏"},
 		{Text: "status", Description: "显示连接状态"},
 		{Text: "connect", Description: "连接到数据库"},
+		{Text: "config", Description: "管理默认连接配置"},
+		{Text: "config save", Description: "保存当前连接为默认配置"},
+		{Text: "config set", Description: "修改默认配置"},
+		{Text: "config clear", Description: "清除默认配置"},
 		{Text: "show tables", Description: "列出所有表"},
 		{Text: "desc table", Description: "显示表结构"},
 		{Text: "select", Description: "查询数据"},
@@ -103,6 +219,19 @@ func completer(d prompt.Document) []prompt.Suggest {
 		{Text: "delete", Description: "删除数据"},
 		{Text: "import", Description: "导入数据"},
 		{Text: "export", Description: "导出数据"},
+	}
+
+	// 添加config set子命令补全
+	if strings.HasPrefix(d.TextBeforeCursor(), "config set ") {
+		configItems := []prompt.Suggest{
+			{Text: "type", Description: "设置数据库类型"},
+			{Text: "host", Description: "设置主机地址"},
+			{Text: "port", Description: "设置端口"},
+			{Text: "user", Description: "设置用户名"},
+			{Text: "password", Description: "设置密码"},
+			{Text: "dbname", Description: "设置数据库名"},
+		}
+		return prompt.FilterHasPrefix(configItems, d.GetWordBeforeCursor(), true)
 	}
 
 	// 添加表名补全
@@ -129,7 +258,7 @@ func completer(d prompt.Document) []prompt.Suggest {
 func getPrompt() (string, bool) {
 	config := db.GetCurrentConfig()
 	if config != nil {
-		return fmt.Sprintf("db[%s]> ", config.DbName), true
+		return fmt.Sprintf("datamgr[%s]> ", config.DbName), true
 	}
 	return dbPrompt, true
 }
@@ -154,6 +283,20 @@ func Start() {
 	fmt.Println("欢迎使用通用数据管理工具！输入 'help' 查看帮助信息。")
 	fmt.Println("输入 'exit' 或 'quit' 退出程序")
 	fmt.Println("按 Ctrl+C 也可以终止程序")
+	
+	// 检查是否已经连接到数据库（通过默认配置）
+	if config := db.GetCurrentConfig(); config != nil {
+		fmt.Printf("当前已连接到 %s 数据库: %s\n", config.Type, config.DbName)
+	} else {
+		// 提示用户连接数据库
+		fmt.Println("当前未连接到数据库，请使用 'connect' 命令连接")
+		
+		// 检查是否有默认配置可用
+		defaultConfig, err := utils.LoadConfig()
+		if err == nil && defaultConfig != nil {
+			fmt.Println("发现默认配置信息，可以使用 'connect' 命令快速连接")
+		}
+	}
 	
 	// 设置信号处理
 	setupSignalHandler()

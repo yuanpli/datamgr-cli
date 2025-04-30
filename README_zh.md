@@ -28,6 +28,8 @@ go build
 ./datamgr-cli
 ```
 
+启动时会自动尝试加载默认配置并连接数据库。
+
 ### 连接数据库
 
 通过命令行参数连接：
@@ -39,10 +41,20 @@ go build
 或者在交互式命令行中连接：
 
 ```
-db> connect
+datamgr> connect
 ```
 
 然后按照提示输入连接信息。
+
+### 默认配置管理
+
+可以保存当前连接为默认配置：
+
+```
+datamgr> config save
+```
+
+下次启动程序时将自动使用该配置连接数据库。
 
 ### 可用命令
 
@@ -53,6 +65,13 @@ db> connect
 - `status` - 显示当前连接状态
 - `exit/quit` - 退出程序
 - `clear` - 清屏
+
+#### 配置管理命令
+
+- `config` - 显示当前默认配置
+- `config save` - 保存当前连接为默认配置
+- `config set <项> <值>` - 设置默认配置项（type/host/port/user/password/dbname）
+- `config clear` - 清除默认配置
 
 #### 表清单交互命令
 
@@ -87,7 +106,7 @@ EXPORT <table> [WHERE 条件] <file> [FORMAT csv/excel]
 欢迎使用通用数据管理工具！输入 'help' 查看帮助信息。
 输入 'exit' 或 'quit' 退出程序
 按 Ctrl+C 也可以终止程序
-db> help
+datamgr> help
 
 可用命令:
   系统命令:
@@ -109,7 +128,7 @@ db> help
     IMPORT <表> FROM <文件> [FORMAT csv/excel]       - 导入数据
     EXPORT <表> [WHERE 条件] <文件> [FORMAT csv/excel] - 导出数据
 
-db> 
+datamgr> 
      help         显示帮助信息  
      exit         退出程序      
      quit         退出程序      
@@ -121,16 +140,16 @@ db>
 ```
 
 ```
-db> connect -H localhost -u SYSDBA -p SYSDBA -D DAMENG
+datamgr> connect -H localhost -u SYSDBA -p SYSDBA -D DAMENG
 已成功连接到 dameng 数据库: DAMENG
 
-db[DAMENG]> show tables
+datamgr[DAMENG]> show tables
 表列表:
   1) EMPLOYEES
   2) DEPARTMENTS
   3) PRODUCTS
 
-db[DAMENG]> desc table EMPLOYEES
+datamgr[DAMENG]> desc table EMPLOYEES
 表 EMPLOYEES 的结构:
 字段名                 数据类型           长度         可空         约束          
 ---------------------------------------------------------------------------
@@ -140,7 +159,7 @@ DEPARTMENT_ID        NUMBER             22          Y
 SALARY               NUMBER             22          Y                       
 HIRE_DATE            DATE               7           Y                       
 
-db[DAMENG]> SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 1
+datamgr[DAMENG]> SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 1
 ID                  NAME                DEPARTMENT_ID       SALARY              HIRE_DATE           
 ----------------------------------------------------------------------------------------------------
 1                   张三                 1                   10000               2022-01-01          

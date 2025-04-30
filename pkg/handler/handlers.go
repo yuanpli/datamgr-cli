@@ -15,8 +15,9 @@ import (
 
 	"encoding/csv"
 
-	"github.com/bwty/bwty-data-cli/db"
 	"github.com/xuri/excelize/v2"
+	"github.com/yuanpli/datamgr-cli/db"
+	"github.com/yuanpli/datamgr-cli/pkg/utils"
 	"golang.org/x/term"
 )
 
@@ -30,6 +31,12 @@ func HandleHelp() {
     status                 - 显示连接状态
     exit, quit             - 退出程序
     clear                  - 清屏
+
+  配置管理:
+    config                 - 显示当前默认配置
+    config save            - 保存当前连接为默认配置
+    config set <项> <值>   - 设置默认配置项
+    config clear           - 清除默认配置
 
   表管理命令:
     show tables            - 列出所有表
@@ -170,6 +177,8 @@ func readPassword(prompt string) string {
 func handleInteractiveConnect() error {
 	fmt.Println("请输入连接信息:")
 
+	// 尝试加载默认配置
+	defaultConfig, err := utils.LoadConfig()
 	var dbType, host, user, password, dbName string
 	var port int
 
@@ -177,35 +186,84 @@ func handleInteractiveConnect() error {
 	dbType = "dameng"
 	port = 5236
 
+	// 如果有默认配置，使用默认值，但允许用户修改
+	if err == nil && defaultConfig != nil {
+		dbType = defaultConfig.Type
+		port = defaultConfig.Port
+		
+		// 提示用户是否使用默认配置
+		fmt.Println("发现默认配置:")
+		fmt.Printf("  数据库类型: %s\n", defaultConfig.Type)
+		fmt.Printf("  主机地址: %s\n", defaultConfig.Host)
+		fmt.Printf("  端口: %d\n", defaultConfig.Port)
+		fmt.Printf("  用户名: %s\n", defaultConfig.User)
+		fmt.Printf("  数据库名: %s\n", defaultConfig.DbName)
+		
+		useDefault := readInput("是否使用默认配置? (y/n): ")
+		if strings.ToLower(useDefault) == "y" || strings.ToLower(useDefault) == "yes" {
+			// 直接使用默认配置连接
+			return db.Connect(defaultConfig.Type, defaultConfig.Host, defaultConfig.Port, 
+				defaultConfig.User, defaultConfig.Password, defaultConfig.DbName)
+		}
+		
+		// 否则使用默认配置作为基础，让用户修改
+		fmt.Println("请输入新的连接信息 (直接回车使用默认值):")
+	}
+
 	// 获取主机地址
-	host = readInput("主机地址: ")
+	defaultHostPrompt := ""
+	if defaultConfig != nil && defaultConfig.Host != "" {
+		defaultHostPrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.Host)
+	}
+	host = readInput(fmt.Sprintf("主机地址%s: ", defaultHostPrompt))
+	if host == "" && defaultConfig != nil {
+		host = defaultConfig.Host
+	}
 	
 	// 获取端口
-	portStr := readInput("端口 (默认 5236): ")
+	defaultPortPrompt := " (默认 5236)"
+	if defaultConfig != nil && defaultConfig.Port != 0 {
+		defaultPortPrompt = fmt.Sprintf(" (默认 %d)", defaultConfig.Port)
+	}
+	portStr := readInput(fmt.Sprintf("端口%s: ", defaultPortPrompt))
 	if portStr != "" {
 		fmt.Sscanf(portStr, "%d", &port)
+	} else if defaultConfig != nil && defaultConfig.Port != 0 {
+		port = defaultConfig.Port
 	}
 	
 	// 获取用户名
-	user = readInput("用户名: ")
+	defaultUserPrompt := ""
+	if defaultConfig != nil && defaultConfig.User != "" {
+		defaultUserPrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.User)
+	}
+	user = readInput(fmt.Sprintf("用户名%s: ", defaultUserPrompt))
+	if user == "" && defaultConfig != nil {
+		user = defaultConfig.User
+	}
 	
 	// 获取密码
 	password = readPassword("密码: ")
+	if password == "" && defaultConfig != nil {
+		password = defaultConfig.Password
+	}
 	
 	// 获取数据库名
-	dbName = readInput("数据库名: ")
+	defaultDbNamePrompt := ""
+	if defaultConfig != nil && defaultConfig.DbName != "" {
+		defaultDbNamePrompt = fmt.Sprintf(" (默认 %s)", defaultConfig.DbName)
+	}
+	dbName = readInput(fmt.Sprintf("数据库名%s: ", defaultDbNamePrompt))
+	if dbName == "" && defaultConfig != nil {
+		dbName = defaultConfig.DbName
+	}
 
 	if host == "" || user == "" || password == "" || dbName == "" {
 		return errors.New("连接参数不完整，请提供主机、用户名、密码和数据库名")
 	}
 
-	err := db.Connect(dbType, host, port, user, password, dbName)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("已成功连接到 %s 数据库: %s\n", dbType, dbName)
-	return nil
+	// 连接数据库
+	return db.Connect(dbType, host, port, user, password, dbName)
 }
 
 // HandleInteractiveConnect 交互式连接向导（公开版本）

@@ -55,3 +55,16 @@ IMPORT <table> FROM <file> [FORMAT csv/excel]
 
 -- 导出
 EXPORT <table> [WHERE 条件] <file> [FORMAT csv/excel]
+
+## TODO List
+
+### 默认配置信息管理
+[x] 支持将指定的数据库类型和数据库连接信息保存为默认配置信息并存储到用户目录下（mac、linux、windows）
+[x] 支持查看当前默认配置信息
+[x] 支持修改当前默认配置信息
+[x] 支持清除当前默认配置信息
+
+### 更多数据库支持
+
+[] 支持DB2
+[] 支持Mysql

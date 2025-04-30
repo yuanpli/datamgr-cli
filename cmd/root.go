@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bwty/bwty-data-cli/pkg/prompt"
 	"github.com/spf13/cobra"
+	"github.com/yuanpli/datamgr-cli/pkg/prompt"
 )
 
 var rootCmd = &cobra.Command{
@@ -33,4 +33,5 @@ func ExecuteContext(ctx context.Context) error {
 func init() {
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(configCmd)
 } 

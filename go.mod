@@ -1,4 +1,4 @@
-module github.com/bwty/bwty-data-cli
+module github.com/yuanpli/datamgr-cli
 
 go 1.23.0
 
