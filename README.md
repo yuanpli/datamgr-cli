@@ -4,7 +4,7 @@ A command-line tool for universal data management that supports multiple databas
 
 ## Features
 
-- Supports multiple database types (DM/MySQL/SQLite/PostgreSQL, etc.), with DM as the default
+- Supports multiple database types (DM/MySQL/PostgreSQL/SQLite, etc.), with DM as the default
 - Provides a unified interface for table operations
 - SQL-like command syntax
 - Interactive CLI with auto-completion and command history
@@ -131,11 +131,42 @@ ID                  NAME                DEPARTMENT_ID       SALARY              
 Total 2 rows
 ```
 
+For MySQL connection:
+
+```
+datamgr> connect --type mysql --host localhost --port 3306 --user root --password mypass --dbname employees
+Successfully connected to mysql database: employees
+
+datamgr[employees]> show tables
+Table list:
+  1) departments
+  2) employees
+  3) salaries
+
+datamgr[employees]> desc table employees
+Structure of table employees:
+Field Name            Data Type          Length        Nullable      Constraints          Description
+---------------------------------------------------------------------------------------------------------
+id                   int                11            NO           PRIMARY KEY         Employee ID
+name                 varchar            100           NO                              Employee Name
+dept_id              int                11            YES                             Department ID
+hire_date            date                             YES                             Hire Date
+
+datamgr[employees]> SELECT * FROM employees LIMIT 2
+id                  name                dept_id             hire_date           
+-------------------------------------------------------------------------
+1                   John Smith          1                   2023-01-15          
+2                   Jane Doe            1                   2023-02-20          
+
+Total 2 rows
+```
+
 ## Development Requirements
 
 - Go 1.18 or higher
 - DM database driver `gitee.com/chunanyong/dm`
 - PostgreSQL database driver `github.com/lib/pq`
+- MySQL database driver `github.com/go-sql-driver/mysql`
 
 ## README Links
 
