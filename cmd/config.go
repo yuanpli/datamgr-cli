@@ -40,18 +40,11 @@ var configCmd = &cobra.Command{
 		if showFlag || (!saveFlag && configType == "" && configHost == "" && 
 			configPort == "" && configUser == "" && configPwd == "" && configDbName == "") {
 			// 显示配置
-			config, err := utils.LoadConfig()
+			_, err := utils.DisplayConfig()
 			if err != nil {
 				fmt.Printf("加载配置失败: %v\n", err)
 				return
 			}
-			fmt.Println("当前默认配置:")
-			fmt.Printf("  数据库类型: %s\n", config.Type)
-			fmt.Printf("  主机地址: %s\n", config.Host)
-			fmt.Printf("  端口: %d\n", config.Port)
-			fmt.Printf("  用户名: %s\n", config.User)
-			fmt.Printf("  密码: %s\n", "********") // 不直接显示密码
-			fmt.Printf("  数据库名: %s\n", config.DbName)
 			return
 		}
 
