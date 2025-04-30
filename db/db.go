@@ -59,7 +59,7 @@ func Connect(dbType, host string, port int, user, password, dbName string) error
 	case "postgresql":
 		conn, err = NewPostgresConnection(config)
 	case "mysql":
-		return errors.New("MySQL 数据库支持尚未实现")
+		conn, err = NewMySQLConnection(config)
 	case "sqlite":
 		return errors.New("SQLite 数据库支持尚未实现")
 	default:

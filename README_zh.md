@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 支持多种数据库类型（达梦/MySQL/SQLite/PostgreSQL等），默认为达梦数据库
+- 支持多种数据库类型（达梦/MySQL/PostgreSQL/SQLite等），默认为达梦数据库
 - 提供统一的表管理操作接口
 - 类SQL的命令语法
 - 交互式命令行界面，带有自动补全和命令历史记录
@@ -168,11 +168,42 @@ ID                  NAME                DEPARTMENT_ID       SALARY              
 共 2 行结果
 ```
 
+MySQL数据库连接示例:
+
+```
+datamgr> connect --type mysql --host localhost --port 3306 --user root --password mypass --dbname employees
+已成功连接到 mysql 数据库: employees
+
+datamgr[employees]> show tables
+表列表:
+  1) departments
+  2) employees
+  3) salaries
+
+datamgr[employees]> desc table employees
+表 employees 的结构:
+字段名                 数据类型           长度         可空         约束               描述
+---------------------------------------------------------------------------------------------------------
+id                   int                11          NO          PRIMARY KEY       员工ID
+name                 varchar            100         NO                            员工姓名
+dept_id              int                11          YES                           部门ID
+hire_date            date                           YES                           入职日期
+
+datamgr[employees]> SELECT * FROM employees LIMIT 2
+id                  name                dept_id             hire_date           
+-------------------------------------------------------------------------
+1                   张三                 1                   2023-01-15          
+2                   李四                 1                   2023-02-20          
+
+共 2 行结果
+```
+
 ## 开发环境要求
 
 - Go 1.18 或更高版本
 - 达梦数据库驱动 `gitee.com/chunanyong/dm` 
 - PostgreSQL数据库驱动 `github.com/lib/pq`
+- MySQL数据库驱动 `github.com/go-sql-driver/mysql`
 
 ## License
 
