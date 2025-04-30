@@ -28,6 +28,8 @@ go build
 ./datamgr-cli
 ```
 
+The program will automatically try to load default configuration and connect to the database on startup.
+
 ### Connect to a Database
 
 Connect via command-line parameters:
@@ -39,10 +41,20 @@ Connect via command-line parameters:
 Or connect interactively:
 
 ```
-db> connect
+datamgr> connect
 ```
 
 Follow the prompts to enter connection details.
+
+### Default Configuration Management
+
+You can save the current connection as the default configuration:
+
+```
+datamgr> config save
+```
+
+The program will automatically use this configuration to connect to the database the next time you start it.
 
 ### Available Commands
 
@@ -53,6 +65,13 @@ Follow the prompts to enter connection details.
 - `status` - Show current connection status
 - `exit/quit` - Exit the program
 - `clear` - Clear the screen
+
+#### Configuration Commands
+
+- `config` - Show current default configuration
+- `config save` - Save current connection as default configuration
+- `config set <item> <value>` - Set configuration items (type/host/port/user/password/dbname)
+- `config clear` - Clear default configuration
 
 #### Table Interaction Commands
 
@@ -84,16 +103,16 @@ EXPORT <table> [WHERE condition] <file> [FORMAT csv/excel]
 ## Examples
 
 ```
-db> connect -H localhost -u SYSDBA -p SYSDBA -D DAMENG
+datamgr> connect -H localhost -u SYSDBA -p SYSDBA -D DAMENG
 Successfully connected to dameng database: DAMENG
 
-db[DAMENG]> show tables
+datamgr[DAMENG]> show tables
 Table list:
   1) EMPLOYEES
   2) DEPARTMENTS
   3) PRODUCTS
 
-db[DAMENG]> desc table EMPLOYEES
+datamgr[DAMENG]> desc table EMPLOYEES
 Structure of table EMPLOYEES:
 Field Name            Data Type          Length        Nullable      Constraints          
 ---------------------------------------------------------------------------
@@ -103,7 +122,7 @@ DEPARTMENT_ID        NUMBER             22            Y
 SALARY               NUMBER             22            Y                       
 HIRE_DATE            DATE               7             Y                       
 
-db[DAMENG]> SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 1
+datamgr[DAMENG]> SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 1
 ID                  NAME                DEPARTMENT_ID       SALARY              HIRE_DATE           
 ----------------------------------------------------------------------------------------------------
 1                   Zhang San           1                   10000               2022-01-01          

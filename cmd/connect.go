@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/bwty/bwty-data-cli/db"
-	"github.com/bwty/bwty-data-cli/pkg/handler"
-	"github.com/bwty/bwty-data-cli/pkg/prompt"
 	"github.com/spf13/cobra"
+	"github.com/yuanpli/datamgr-cli/db"
+	"github.com/yuanpli/datamgr-cli/pkg/handler"
+	"github.com/yuanpli/datamgr-cli/pkg/prompt"
 )
 
 var (

@@ -13,7 +13,7 @@ import (
 
 	"encoding/csv"
 
-	"github.com/bwty/bwty-data-cli/db"
+	"github.com/yuanpli/datamgr-cli/db"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/term"
 )
