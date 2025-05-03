@@ -7,18 +7,22 @@ toolchain go1.23.4
 require (
 	gitee.com/chunanyong/dm v1.8.19
 	github.com/c-bata/go-prompt v0.2.6
+	github.com/chzyer/readline v1.5.1
+	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/fatih/color v1.16.0
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/godror/godror v0.48.2
 	github.com/lib/pq v1.10.9
 	github.com/spf13/cobra v1.8.0
+	github.com/xuri/excelize/v2 v2.9.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/godror/knownpb v0.1.2 // indirect
+	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -31,7 +35,6 @@ require (
 	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
-	github.com/xuri/excelize/v2 v2.9.0 // indirect
 	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect

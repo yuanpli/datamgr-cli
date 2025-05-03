@@ -259,7 +259,7 @@ func handleInteractiveConnect() error {
 	}
 
 	// 获取数据库类型
-	fmt.Println("支持的数据库类型: dameng, mysql, postgresql, sqlite, oracle")
+	fmt.Println("支持的数据库类型: dameng, mysql, postgresql, sqlite, oracle, mssql")
 	var dbTypePrompt string
 	if defaultConfig != nil {
 		dbTypePrompt = fmt.Sprintf("数据库类型 (默认 %s): ", defaultConfig.Type)
@@ -272,7 +272,7 @@ func handleInteractiveConnect() error {
 	// 验证数据库类型
 	if dbTypeInput != "" {
 		dbTypeInput = strings.ToLower(dbTypeInput)
-		supportedDbTypes := []string{"dameng", "mysql", "postgresql", "sqlite", "oracle"}
+		supportedDbTypes := []string{"dameng", "mysql", "postgresql", "sqlite", "oracle", "mssql"}
 		isValidType := false
 		for _, supportedType := range supportedDbTypes {
 			if dbTypeInput == supportedType {

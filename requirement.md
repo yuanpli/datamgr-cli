@@ -69,5 +69,5 @@ EXPORT <table> [WHERE 条件] <file> [FORMAT csv/excel]
 [x] 支持PostgreSQL
 [x] 支持Mysql
 [x] 支持Oracle
-[] 支持MS SQL Server
+[x] 支持MS SQL Server
 

@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 支持多种数据库类型（达梦/MySQL/PostgreSQL/SQLite/Oracle等），默认为达梦数据库
+- 支持多种数据库类型（达梦/MySQL/PostgreSQL/SQLite/Oracle/MS SQL Server等），默认为达梦数据库
 - 提供统一的表管理操作接口
 - 类SQL的命令语法
 - 交互式命令行界面，带有自动补全和命令历史记录
@@ -205,6 +205,7 @@ id                  name                dept_id             hire_date
 - PostgreSQL数据库驱动 `github.com/lib/pq`
 - MySQL数据库驱动 `github.com/go-sql-driver/mysql`
 - Oracle数据库驱动 `github.com/godror/godror`
+- MS SQL Server数据库驱动 `github.com/denisenkom/go-mssqldb`
 
 ## License
 

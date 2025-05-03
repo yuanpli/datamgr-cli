@@ -4,7 +4,7 @@ A command-line tool for universal data management that supports multiple databas
 
 ## Features
 
-- Supports multiple database types (DaMeng/MySQL/PostgreSQL/SQLite/Oracle, etc.), with DaMeng as the default
+- Supports multiple database types (DaMeng/MySQL/PostgreSQL/SQLite/Oracle/MS SQL Server, etc.), with DaMeng as the default
 - Provides a unified interface for table operations
 - SQL-like command syntax
 - Interactive CLI with auto-completion and command history
@@ -168,6 +168,7 @@ Total 2 rows
 - PostgreSQL database driver `github.com/lib/pq`
 - MySQL database driver `github.com/go-sql-driver/mysql`
 - Oracle database driver `github.com/godror/godror`
+- MS SQL Server database driver `github.com/denisenkom/go-mssqldb`
 
 ## README Links
 
