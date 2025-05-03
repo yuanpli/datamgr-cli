@@ -21,7 +21,7 @@ var (
 var connectCmd = &cobra.Command{
 	Use:   "connect",
 	Short: "连接到数据库",
-	Long:  `连接到指定的数据库。支持达梦、MySQL、SQLite、PostgreSQL等。`,
+	Long:  `连接到指定的数据库。支持达梦、MySQL、SQLite、PostgreSQL、Oracle等。`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// 如果没有提供命令行参数，则启动交互式连接向导
 		if !cmd.Flags().Changed("host") && !cmd.Flags().Changed("user") && 
@@ -62,7 +62,7 @@ var connectCmd = &cobra.Command{
 
 func init() {
 	// 默认为达梦数据库
-	connectCmd.Flags().StringVar(&dbType, "type", "dameng", "数据库类型 (dameng, mysql, sqlite, postgresql)")
+	connectCmd.Flags().StringVar(&dbType, "type", "dameng", "数据库类型 (dameng, mysql, sqlite, postgresql, oracle)")
 	connectCmd.Flags().StringVarP(&host, "host", "H", "", "数据库主机地址")
 	connectCmd.Flags().IntVarP(&port, "port", "P", 5236, "数据库端口")
 	connectCmd.Flags().StringVarP(&user, "user", "u", "", "数据库用户名")

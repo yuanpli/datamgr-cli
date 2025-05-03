@@ -4,7 +4,7 @@ A command-line tool for universal data management that supports multiple databas
 
 ## Features
 
-- Supports multiple database types (DM/MySQL/PostgreSQL/SQLite, etc.), with DM as the default
+- Supports multiple database types (DaMeng/MySQL/PostgreSQL/SQLite/Oracle, etc.), with DaMeng as the default
 - Provides a unified interface for table operations
 - SQL-like command syntax
 - Interactive CLI with auto-completion and command history
@@ -164,9 +164,10 @@ Total 2 rows
 ## Development Requirements
 
 - Go 1.18 or higher
-- DM database driver `gitee.com/chunanyong/dm`
+- DaMeng database driver `gitee.com/chunanyong/dm` 
 - PostgreSQL database driver `github.com/lib/pq`
 - MySQL database driver `github.com/go-sql-driver/mysql`
+- Oracle database driver `github.com/godror/godror`
 
 ## README Links
 
