@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -342,29 +341,7 @@ func executeSQL(sql string) error {
 	// 判断是查询语句还是更新语句
 	sqlLower := strings.ToLower(sql)
 	if strings.HasPrefix(sqlLower, "select") {
-		// 尝试解析SQL获取表名
-		var tableName string
-		fromIndex := strings.Index(sqlLower, "from")
-		if fromIndex > 0 {
-			afterFrom := sqlLower[fromIndex+4:]
-			parts := strings.Fields(afterFrom)
-			if len(parts) > 0 {
-				tableName = parts[0]
-			}
-		}
-
-		// 获取表的列顺序
-		var orderedColumns []string
-		var err error
-		if tableName != "" {
-			orderedColumns, err = conn.GetTableColumns(tableName)
-			if err != nil {
-				// 如果获取列顺序失败，不中断执行，只是不排序
-				orderedColumns = nil
-			}
-		}
-
-		// 执行查询
+		// 直接执行查询
 		results, err := conn.Query(sql)
 		if err != nil {
 			return err
@@ -375,38 +352,9 @@ func executeSQL(sql string) error {
 			return nil
 		}
 
-		// 获取所有列名
-		var columns []string
-		if orderedColumns != nil {
-			// 使用表的原始顺序
-			for _, col := range orderedColumns {
-				// 检查查询结果中是否包含此列
-				if _, exists := results[0][col]; exists {
-					columns = append(columns, col)
-				}
-			}
-			
-			// 处理查询结果中可能存在但未在获取的列顺序中的列
-			for col := range results[0] {
-				found := false
-				for _, orderedCol := range columns {
-					if orderedCol == col {
-						found = true
-						break
-					}
-				}
-				if !found {
-					columns = append(columns, col)
-				}
-			}
-		} else {
-			// 没有获取到表的列顺序，使用map的键
-			for col := range results[0] {
-				columns = append(columns, col)
-			}
-			// 字母排序以保证每次显示顺序一致
-			sort.Strings(columns)
-		}
+		// 处理列排序
+		isSelectStar := isSelectAllQuery(sqlLower)
+		columns := getOrderedColumns(results[0], sqlLower, conn, isSelectStar)
 
 		// 打印表头
 		headerFmt := ""
@@ -442,7 +390,7 @@ func executeSQL(sql string) error {
 		fmt.Printf("\n共 %d 行结果\n", len(results))
 
 	} else {
-		// 执行更新操作
+		// 直接执行更新操作
 		affected, err := conn.Execute(sql)
 		if err != nil {
 			return err
@@ -452,4 +400,109 @@ func executeSQL(sql string) error {
 	}
 
 	return nil
+}
+
+// isSelectAllQuery 判断是否为SELECT *查询
+func isSelectAllQuery(sqlLower string) bool {
+	// 去除多余空格
+	sqlLower = strings.TrimSpace(sqlLower)
+	
+	// 检查是否以SELECT *开头
+	if strings.HasPrefix(sqlLower, "select *") {
+		return true
+	}
+	
+	// 检查是否有SELECT和FROM之间只有*（可能有空格）
+	selectIndex := strings.Index(sqlLower, "select")
+	fromIndex := strings.Index(sqlLower, "from")
+	
+	if selectIndex >= 0 && fromIndex > selectIndex {
+		between := strings.TrimSpace(sqlLower[selectIndex+6:fromIndex])
+		if between == "*" {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// getTableNameFromSQL 从SQL语句中提取表名
+func getTableNameFromSQL(sqlLower string) string {
+	fromIndex := strings.Index(sqlLower, "from")
+	if fromIndex < 0 {
+		return ""
+	}
+	
+	afterFrom := sqlLower[fromIndex+4:]
+	parts := strings.Fields(afterFrom)
+	if len(parts) == 0 {
+		return ""
+	}
+	
+	// 处理表名可能有的别名、WHERE子句等
+	tableName := parts[0]
+	// 移除可能的逗号、括号等
+	tableName = strings.TrimRight(tableName, ",();")
+	
+	return tableName
+}
+
+// getOrderedColumns 根据查询类型获取有序的列名
+func getOrderedColumns(resultRow map[string]interface{}, sqlLower string, conn db.Connection, isSelectStar bool) []string {
+	// 如果不是SELECT *查询，保持原始顺序
+	if !isSelectStar {
+		var columns []string
+		for col := range resultRow {
+			columns = append(columns, col)
+		}
+		return columns
+	}
+	
+	// 对于SELECT *查询，尝试按表结构排序
+	tableName := getTableNameFromSQL(sqlLower)
+	if tableName == "" {
+		// 无法确定表名，使用原始顺序
+		var columns []string
+		for col := range resultRow {
+			columns = append(columns, col)
+		}
+		return columns
+	}
+	
+	// 获取表的列顺序
+	tableColumns, err := conn.GetTableColumns(tableName)
+	if err != nil || len(tableColumns) == 0 {
+		// 获取列顺序失败，使用原始顺序
+		var columns []string
+		for col := range resultRow {
+			columns = append(columns, col)
+		}
+		return columns
+	}
+	
+	// 使用表结构顺序排序结果列
+	var orderedColumns []string
+	
+	// 首先添加按表结构顺序的列
+	for _, col := range tableColumns {
+		if _, exists := resultRow[col]; exists {
+			orderedColumns = append(orderedColumns, col)
+		}
+	}
+	
+	// 添加可能的额外列（不在表结构中的列）
+	for col := range resultRow {
+		found := false
+		for _, orderedCol := range orderedColumns {
+			if col == orderedCol {
+				found = true
+				break
+			}
+		}
+		if !found {
+			orderedColumns = append(orderedColumns, col)
+		}
+	}
+	
+	return orderedColumns
 } 
