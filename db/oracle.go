@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/godror/godror"
+	_ "github.com/sijms/go-ora/v2"
 )
 
 // OracleConnection Oracle数据库连接
@@ -16,7 +16,7 @@ type OracleConnection struct {
 }
 
 // NewOracleConnection 创建Oracle数据库连接
-func NewOracleConnection(config *DbConfig) (*OracleConnection, error) {
+func NewOracleConnection(config *DbConfig) (Connection, error) {
 	return &OracleConnection{
 		config: config,
 	}, nil
@@ -24,18 +24,20 @@ func NewOracleConnection(config *DbConfig) (*OracleConnection, error) {
 
 // Connect 连接到Oracle数据库
 func (o *OracleConnection) Connect() error {
-	// Oracle连接字符串格式: user/password@host:port/service_name
-	connectionString := fmt.Sprintf("%s/%s@%s:%d/%s",
+	// 构建Oracle连接字符串
+	// 格式: oracle://user:password@host:port/service_name
+	connStr := fmt.Sprintf("oracle://%s:%s@%s:%d/%s",
 		o.config.User, o.config.Password, o.config.Host, o.config.Port, o.config.DbName)
 
-	db, err := sql.Open("godror", connectionString)
+	// 连接数据库
+	db, err := sql.Open("oracle", connStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("连接Oracle数据库失败: %v", err)
 	}
 
 	// 测试连接
-	if err = db.Ping(); err != nil {
-		return err
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("Oracle数据库连接测试失败: %v", err)
 	}
 
 	o.db = db
@@ -53,7 +55,7 @@ func (o *OracleConnection) Disconnect() error {
 // formatOracleTime 格式化Oracle时间为标准格式
 func formatOracleTime(val interface{}) interface{} {
 	if val == nil {
-		return val
+		return nil
 	}
 	
 	// 如果是字符串，处理成标准格式
@@ -323,48 +325,7 @@ func (o *OracleConnection) DescribeTable(tableName string) ([]map[string]interfa
         col.column_id
     `
 
-	rows, err := o.db.Query(query, tableName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]map[string]interface{}, 0)
-	values := make([]interface{}, len(columns))
-	scanArgs := make([]interface{}, len(columns))
-
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-
-	for rows.Next() {
-		err = rows.Scan(scanArgs...)
-		if err != nil {
-			return nil, err
-		}
-
-		row := make(map[string]interface{})
-		for i, col := range columns {
-			val := values[i]
-			if b, ok := val.([]byte); ok {
-				row[col] = string(b)
-			} else {
-				row[col] = val
-			}
-		}
-		results = append(results, row)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return results, nil
+	return o.QueryWithParams(query, tableName)
 }
 
 // GetTableColumns 获取表列名
@@ -373,6 +334,7 @@ func (o *OracleConnection) GetTableColumns(tableName string) ([]string, error) {
 		return nil, fmt.Errorf("数据库未连接")
 	}
 
+	// 查询表字段
 	query := `SELECT column_name FROM user_tab_columns WHERE table_name = UPPER(?) ORDER BY column_id`
 
 	rows, err := o.db.Query(query, tableName)
@@ -383,15 +345,11 @@ func (o *OracleConnection) GetTableColumns(tableName string) ([]string, error) {
 
 	var columns []string
 	for rows.Next() {
-		var colName string
-		if err := rows.Scan(&colName); err != nil {
+		var columnName string
+		if err := rows.Scan(&columnName); err != nil {
 			return nil, err
 		}
-		columns = append(columns, colName)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
+		columns = append(columns, columnName)
 	}
 
 	return columns, nil

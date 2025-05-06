@@ -1,1 +1,5 @@
 datamgr-cli
+datamgr-cli.exe
+datamgr-cli-linux
+datamgr-cli-darwin
+./build
