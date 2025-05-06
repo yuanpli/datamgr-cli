@@ -2,7 +2,7 @@ module github.com/yuanpli/datamgr-cli
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.24.2
 
 require (
 	gitee.com/chunanyong/dm v1.8.19
