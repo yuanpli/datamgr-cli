@@ -33,6 +33,9 @@ func cleanExit(message string, exitCode int) {
 		conn.Disconnect()
 	}
 	
+	// 恢复终端状态
+	handler.Close()
+	
 	os.Exit(exitCode)
 }
 
